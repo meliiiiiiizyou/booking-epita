@@ -27,12 +27,13 @@ public class SecurityConfiguration {
         return http
             .authorizeHttpRequests(auth -> auth
                 // Step 4a: add access control
-                // ...
+                .requestMatchers("/dashboard").hasRole("ADMIN")
+                .requestMatchers("/").hasAnyRole("ADMIN", "GUEST")
                 // Step 4a: end
                 .anyRequest().permitAll()
             )
             // Step 4b: Add login form
-            // ...
+            .formLogin(withDefaults())
             // Step 4b: End of login form configuration
             
             .csrf((csrf) -> csrf
@@ -64,4 +65,10 @@ public class SecurityConfiguration {
         return new InMemoryUserDetailsManager(administrator, guest);
     }
     // Step 3: end
+@Bean
+public CookieSerializer cookieSerializer() {
+    DefaultCookieSerializer serializer = new DefaultCookieSerializer();
+    serializer.setSameSite("strict");
+    return serializer;
+}			
 }
