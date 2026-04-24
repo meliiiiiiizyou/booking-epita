@@ -1,4 +1,5 @@
 name: pull-request
+# Security checks for pull requests
 
 on:
   pull_request:
