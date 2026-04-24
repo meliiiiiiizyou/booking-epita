@@ -2,6 +2,8 @@ name: pull-request
 
 on:
   pull_request:
+    branches:
+      - main
 
 permissions:
   actions: read
@@ -9,48 +11,52 @@ permissions:
   contents: read
 
 jobs:
-  dependencies:
+  dependencies-analysis:
     name: Dependencies Analysis
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout PR code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Run OSV Scanner (after PR)
         uses: google/osv-scanner-action/osv-scanner-action@c51854704019a247608d928f370c98740469d4b5
         with:
           scan-args: |-
             --format sarif
-            --output after.sarif
+            --output OSVAfter.sarif
             ./
         continue-on-error: true
 
       - name: Checkout baseline commit
-        run: git checkout ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.sha }}
+          git checkout ${{ github.event.pull_request.base.sha }}
 
       - name: Run OSV Scanner (before PR)
         uses: google/osv-scanner-action/osv-scanner-action@c51854704019a247608d928f370c98740469d4b5
         with:
           scan-args: |-
             --format sarif
-            --output before.sarif
+            --output OSVBefore.sarif
             ./
         continue-on-error: true
 
-      - name: Compare analysis
+      - name: Compare OSV reports
         uses: google/osv-scanner-action/osv-reporter-action@c51854704019a247608d928f370c98740469d4b5
         with:
           scan-args: |-
-            --new before.sarif
-            --old after.sarif
-            --output DependenciesDiff.sarif
+            --output OSVDiff.sarif
+            --new OSVAfter.sarif
+            --old OSVBefore.sarif
         continue-on-error: true
 
-      - name: Save differential report as artifact
+      - name: Save differential report
         uses: actions/upload-artifact@v4
         with:
-          name: DependenciesDiff
-          path: DependenciesDiff.sarif
+          name: dependencies-diff-report
+          path: OSVDiff.sarif
 
   source-code-analysis:
     name: Source Code Analysis
@@ -58,23 +64,22 @@ jobs:
     container:
       image: returntocorp/semgrep@sha256:7810f1d7884974ab6dda7bef8f4a2c8e165ea2142fd8260515d380e4f1407263
     steps:
-      - name: Checkout code
+      - name: Checkout PR code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Run Semgrep differential
+      - name: Run Semgrep (differential)
         run: |
           semgrep scan \
             --config .semgrep \
             --sarif \
-            --output SourceCodeAnalysis.sarif \
-            --baseline-commit ${{ github.event.pull_request.base.sha }} || \
-          echo '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"semgrep","rules":[]}},"results":[]}]}' > SourceCodeAnalysis.sarif
+            --output SemgrepDiff.sarif \
+            --baseline-commit ${{ github.event.pull_request.base.sha }} || true
         continue-on-error: true
 
-      - name: Save differential report as artifact
+      - name: Save differential report
         uses: actions/upload-artifact@v4
         with:
-          name: SourceCodeAnalysis
-          path: SourceCodeAnalysis.sarif
+          name: sourcecode-diff-report
+          path: SemgrepDiff.sarif
