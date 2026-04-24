@@ -1,10 +1,13 @@
 name: security
+
 on:
   workflow_dispatch:
+
 permissions:
   actions: read
   security-events: write
   contents: read
+
 jobs:
   dependencies-analysis:
     name: Dependencies Analysis
@@ -12,6 +15,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Run OSV Scanner
         uses: google/osv-scanner-action/osv-scanner-action@c51854704019a247608d928f370c98740469d4b5
         with:
@@ -20,27 +24,30 @@ jobs:
             --output DependenciesAnalysisFull.sarif
             ./
         continue-on-error: true
+
       - name: Upload SARIF to Security Dashboard
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: DependenciesAnalysisFull.sarif
           category: dependencies
+
   source-code-analysis:
     name: Source Code Analysis
     runs-on: ubuntu-latest
     container:
-      image: returntocorp/semgrep@sha256:34b079df03bd8ed6860552adf3905cc5d146dc4d
+      image: returntocorp/semgrep@sha256:7810f1d7884974ab6dda7bef8f4a2c8e165ea2142fd8260515d380e4f1407263
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Run Semgrep
         run: |
           semgrep scan \
-            --config .semgrep.yml \
+            --config .semgrep \
             --sarif \
-            --output SourceCodeAnalysis.sarif || \
-          echo '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"semgrep","rules":[]}},"results":[]}]}' > SourceCodeAnalysis.sarif
+            --output SourceCodeAnalysis.sarif
         continue-on-error: true
+
       - name: Upload SARIF to Security Dashboard
         uses: github/codeql-action/upload-sarif@v3
         with:
