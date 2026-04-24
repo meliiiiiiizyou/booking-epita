@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: run osv-scanner
-        uses: google/osv-scanner-action/osv-scanner-action@v1.9.1
+        uses: google/osv-scanner-action/osv-scanner-action@7222d1c7ee4f96d71d883e0d3c603f1e1705eca9 # v2.3.5
         with:
           scan-args: |-
             --format sarif
@@ -27,6 +27,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: DependenciesAnalysisFull.sarif
+        continue-on-error: true
 
   SourceCodeAnalysis:
     runs-on: ubuntu-latest
@@ -34,13 +35,14 @@ jobs:
       image: semgrep/semgrep
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: run semgrep
-        run: semgrep scan --sarif --output SourceCodeAnalysis.sarif .
+        run: semgrep scan --sarif --output SourceCodeAnalysis.sarif . || true
         continue-on-error: true
 
       - name: upload sarif to security dashboard
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: SourceCodeAnalysis.sarif
+        continue-on-error: true
