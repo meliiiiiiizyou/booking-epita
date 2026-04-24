@@ -36,7 +36,7 @@ jobs:
       - name: Run Semgrep
         run: |
           semgrep scan \
-            --config .semgrep \
+            --config .semgrep.yml \
             --sarif \
             --output SourceCodeAnalysis.sarif || \
           echo '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"semgrep","rules":[]}},"results":[]}]}' > SourceCodeAnalysis.sarif
